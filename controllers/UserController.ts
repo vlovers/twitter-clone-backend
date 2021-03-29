@@ -1,9 +1,10 @@
 import express from 'express';
 import { validationResult } from 'express-validator';
-
-import { UserModel, UserModelInterface } from '../models/UserModel'
+import jwt from 'jsonwebtoken'
+import { UserModel, UserModelDocumentInterface, UserModelInterface } from '../models/UserModel'
 import { generateMD5 } from '../utils/generateHash';
 import mailer from '../core/mailer';
+import { isValidObjectId } from 'mongoose';
 
 class UserController {
     async index(_: any, res: express.Response): Promise<void> {
@@ -14,9 +15,41 @@ class UserController {
                 data: users
             });
         } catch (error)  {
-            res.json({
+            res.status(500).json({
                 status: 'error',
-                message: JSON.stringify(error)
+                message: error
+            });
+        }
+    }
+
+    async show(req: any, res: express.Response): Promise<void> {
+        try {
+            const userId = req.params.id;
+            console.log(userId);
+
+            if (!isValidObjectId(userId )) {
+                res.status(400).send();
+                return;
+            }
+
+            const user = await UserModel.findById(userId).exec();
+
+            if (!user) {
+                res.status(404).json({
+                    status: 'error',
+                    data: "Пользователь не найден"
+                }).send();
+                return;
+            }
+
+            res.json({
+                status: 'seccess',
+                data: user
+            });
+        } catch (error)  {
+            res.status(500).json({
+                status: 'superError',
+                message: error
             });
         }
     }
@@ -31,9 +64,9 @@ class UserController {
 
             const data: UserModelInterface = { 
                 email:req.body.email,
-                username:req.body.username,
-                fullname:req.body.fullname,
-                password:req.body.password,
+                username: req.body.username,
+                fullname: req.body.fullname,
+                password: generateMD5(req.body.password + process.env.SECRET_KEY),
                 confirm_hash: generateMD5(process.env.SECRET_KEY || Math.random().toString())
             }
 
@@ -78,6 +111,44 @@ class UserController {
             } else {
                 res.status(404).send();
             }
+        } catch (error) {
+            res.status(500).json({
+                status: "error",
+                message: error,
+            })
+        }
+        
+    };
+
+    async afterLogin (req: express.Request, res: express.Response): Promise<void> {
+        try {
+            const user = req.user ? (req.user as UserModelDocumentInterface).toJSON() : undefined
+            res.json({
+                status: "seccess",
+                data: {
+                    ...user,
+                    token: jwt.sign({data: req.user}, process.env.SECRET_KEY || "123", {
+                        expiresIn: '30d'
+                    })
+            },
+
+           })
+        } catch (error) {
+            res.status(500).json({
+                status: "error",
+                message: error,
+            })
+        }
+        
+    };
+
+    async getUserInfo (req: express.Request, res: express.Response): Promise<void> {
+        try {
+            const user = req.user ? (req.user as UserModelDocumentInterface).toJSON() : undefined
+            res.json({
+                status: "seccess",
+                data: user,
+           })
         } catch (error) {
             res.status(500).json({
                 status: "error",

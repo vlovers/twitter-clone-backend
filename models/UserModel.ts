@@ -2,6 +2,7 @@ import {Schema, Document, model} from 'mongoose';
 
 
 export interface UserModelInterface {
+    _id?: string;
     email: string;
     fullname: string;
     username: string;
@@ -13,7 +14,9 @@ export interface UserModelInterface {
     website?: string;
 }
 
-const UserSchema = new Schema  ({
+export type UserModelDocumentInterface = UserModelInterface & Document;
+
+const UserSchema = new Schema<UserModelDocumentInterface> ({
     email: {
         type: String,
         required: true,
@@ -30,7 +33,7 @@ const UserSchema = new Schema  ({
     },
     password: {
         type: String,
-        required: true,
+        required: true
     },
     confirm_hash: {
         type: String,
@@ -44,10 +47,15 @@ const UserSchema = new Schema  ({
     lokation: String,    
     about: String,
     website: String
-
-}, {
-    timestamps: true,
 });
+
+UserSchema.set('toJSON', {
+    transform: function (_: any, obj: any) {
+        delete obj.password;
+        delete obj.confirm_hash;
+        return obj;
+    }
+})
 
 export const UserModel = model('User', UserSchema);
   
