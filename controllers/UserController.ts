@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken'
 import { UserModel, UserModelDocumentInterface, UserModelInterface } from '../models/UserModel'
 import { generateMD5 } from '../utils/generateHash';
 import mailer from '../core/mailer';
-import { isValidObjectId } from 'mongoose';
+import { isValidObjectId } from '../utils/isValidObjectId';
 
 class UserController {
     async index(_: any, res: express.Response): Promise<void> {
@@ -48,7 +48,7 @@ class UserController {
             });
         } catch (error)  {
             res.status(500).json({
-                status: 'superError',
+                status: 'error',
                 message: error
             });
         }
